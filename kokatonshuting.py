@@ -1,3 +1,4 @@
+import os
 import pygame
 import sys
 import random
@@ -8,6 +9,20 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN = (0, 40, 0)
+BLUE = (0, 0, 255)
+
+if "__file__" in globals():                 # ← 対話モード対策
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+else:
+    BASE_DIR = os.getcwd()                  # それでも動かす場合
+
+IMG_DIR = os.path.join(BASE_DIR, "ex5", "fig")
+
+def load_img(filename, alpha=True):
+    """IMG_DIR から (アルファ付きで) 読み込むユーティリティ"""
+    path = os.path.join(IMG_DIR, filename)
+    img  = pygame.image.load(path)
+    return img.convert_alpha() if alpha else img.convert()
 
 # プレイヤークラス
 class Player(pygame.sprite.Sprite):
@@ -16,10 +31,18 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.image.load("ex5/fig/4.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (400, 550)
-        self.speed = 5
-
+        self.normal_speed = 5
+        self.slow_speed = 1  #スピードを5分の1にする
+        self.speed = self.normal_speed
+        self.speed_down_timer = 0
 
     def update(self):
+        if self.speed_down_timer > 0:
+            self.speed_down_timer -= 1
+            self.speed = self.slow_speed
+        else:
+            self.speed = self.normal_speed
+
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT] and self.rect.left > 0:
             self.rect.x -= self.speed
@@ -30,7 +53,7 @@ class Player(pygame.sprite.Sprite):
 class Alien(pygame.sprite.Sprite):
     def __init__(self, x, y, all_sprites, alien_bullets):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()  # ← 画像に変更
+        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.speed = 2
@@ -42,7 +65,7 @@ class Alien(pygame.sprite.Sprite):
         if self.rect.right >= 800 or self.rect.left <= 0:
             self.speed = -self.speed
             self.rect.y += 40
-        if random.randint(1, 300) == 1:  # 1/300の確率で弾を発射
+        if random.randint(1, 300) == 1:
             bullet = AlienBullet(self.rect.centerx, self.rect.bottom)
             self.all_sprites.add(bullet)
             self.alien_bullets.add(bullet)
@@ -51,18 +74,17 @@ class Alien(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/beam.png").convert_alpha()  # ← 画像に変更
+        self.image = pygame.image.load("ex5/fig/beam.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -10
-
 
     def update(self):
         self.rect.y += self.speed
         if self.rect.bottom < 0:
             self.kill()
 
-# エイリアンの弾クラス
+# エイリアン弾クラス
 class AlienBullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -71,6 +93,21 @@ class AlienBullet(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = 5
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > 600:
+            self.kill()
+
+# 弱体化アイテムクラス
+class debuffitem(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((20, 20))
+        self.image.fill(BLUE)
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.speed = 3
 
     def update(self):
         self.rect.y += self.speed
@@ -87,13 +124,12 @@ def main():
     aliens = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
     alien_bullets = pygame.sprite.Group()
+    item_group = pygame.sprite.Group()
+
     player = Player()
     all_sprites.add(player)
 
-    # スコアの初期化
     score = 0
-
-    # フラグ
     running = True
     game_over = False
     game_clear = False
@@ -104,8 +140,6 @@ def main():
             alien = Alien(50 + i * 50, 70 + j * 80, all_sprites, alien_bullets)
             all_sprites.add(alien)
             aliens.add(alien)
-
-    running = True
 
     while running:
         for event in pygame.event.get():
@@ -123,15 +157,28 @@ def main():
 
         if not game_over and game_started:
             all_sprites.update()
+
             hits = pygame.sprite.groupcollide(bullets, aliens, True, True)
-            if hits:
+            for hit_aliens in hits.values():
                 score += 10
+                for alien in hit_aliens:
+                    if random.randint(1, 5) == 1:  # 20%の確率でアイテム出現
+                        item = debuffitem(alien.rect.centerx, alien.rect.centery)
+                        all_sprites.add(item)
+                        item_group.add(item)
+
             player_hits = pygame.sprite.spritecollide(player, alien_bullets, True)
             if player_hits:
                 game_over = True
+
+            item_hits = pygame.sprite.spritecollide(player, item_group, True)
+            if item_hits:
+                player.speed_down_timer = 360  # 約6秒間スピードダウン
+
             for alien in aliens:
                 if alien.rect.bottom >= player.rect.top:
                     game_over = True
+
             if not aliens:
                 game_clear = True
 
@@ -143,11 +190,11 @@ def main():
         if game_over:
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)
             screen.blit(game_over_text, (150, 250))
-            # スプライトグループを空にする
             all_sprites.empty()
             aliens.empty()
             bullets.empty()
             alien_bullets.empty()
+            item_group.empty()
 
         if game_clear:
             game_clear_text = font.render("GAME CLEAR", True, WHITE)
