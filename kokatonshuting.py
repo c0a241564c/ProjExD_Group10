@@ -82,6 +82,11 @@ class AlienBullet(pygame.sprite.Sprite):
             
 # スコアに基づいてランクを取得する関数
 def get_rank(score):
+     
+    """
+    # スコアに基づいてランクを取得する関数
+    """
+
     if score >= 300:
         return "S"
     elif score >= 2500:
@@ -95,12 +100,13 @@ def get_rank(score):
     else:
         return "E"
     
-    """
-    # スコアに基づいてランクを取得する関数
-    """
+
 
       # ランキングをファイルに保存
 def save_score(score):  # ランキングをファイルに保存する関数
+    """
+    # ランキングをファイルに保存する関数
+    """
     scores = []  # スコアを保存するリスト
     if os.path.exists("ranking.txt"):  # ファイルが存在する場合
         with open("ranking.txt", "r") as f:  # ファイルを読み込む
@@ -114,6 +120,9 @@ def save_score(score):  # ランキングをファイルに保存する関数
 
 # ランキングを読み込んで上位5位を返す
 def load_ranking():  # ランキングを読み込む関数
+    """
+    # ランキングを読み込む関数
+    """
     if not os.path.exists("ranking.txt"):  # ファイルが存在しない場合
         return []  # 空のリストを返す
     with open("ranking.txt", "r") as f:  # ファイルを読み込む
