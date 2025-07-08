@@ -1,3 +1,4 @@
+import os
 import pygame
 import sys
 import random
@@ -8,6 +9,19 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN = (0, 40, 0)
+
+if "__file__" in globals():                 # ← 対話モード対策
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+else:
+    BASE_DIR = os.getcwd()                  # それでも動かす場合
+
+IMG_DIR = os.path.join(BASE_DIR, "ex5", "fig")
+
+def load_img(filename, alpha=True):
+    """IMG_DIR から (アルファ付きで) 読み込むユーティリティ"""
+    path = os.path.join(IMG_DIR, filename)
+    img  = pygame.image.load(path)
+    return img.convert_alpha() if alpha else img.convert()
 
 # プレイヤークラス
 class Player(pygame.sprite.Sprite):
@@ -79,6 +93,8 @@ class AlienBullet(pygame.sprite.Sprite):
 
 # メインループ
 def main():
+    LIMIT_TIME_MS = 30 * 1000            # 制限時間 30 秒（ミリ秒）
+    start_time    = None                 # カウント開始時刻 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Space Invaders")
@@ -118,10 +134,15 @@ def main():
                     bullets.add(bullet)
                 if event.key == pygame.K_s:
                     game_started = True
+                    start_time = pygame.time.get_ticks()
                 if game_over and event.key == pygame.K_r:
                     main()
 
-        if not game_over and game_started:
+        if not game_over and not game_clear and game_started:
+            elapsed      = pygame.time.get_ticks() - start_time
+            remaining_ms = max(0, LIMIT_TIME_MS - elapsed)
+            if remaining_ms == 0:
+                game_over = True     
             all_sprites.update()
             hits = pygame.sprite.groupcollide(bullets, aliens, True, True)
             if hits:
@@ -140,6 +161,10 @@ def main():
         score_text = font.render(f"Score: {score}", True, WHITE)
         screen.blit(score_text, (10, 10))
 
+        if game_started and not game_over and not game_clear:
+            time_sec  = remaining_ms // 1000
+            time_text = font.render(f"Time: {time_sec}", True, WHITE)
+            screen.blit(time_text, (600, 10))    
         if game_over:
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)
             screen.blit(game_over_text, (150, 250))
