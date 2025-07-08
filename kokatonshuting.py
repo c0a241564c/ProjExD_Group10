@@ -142,14 +142,14 @@ def main():
             elapsed      = pygame.time.get_ticks() - start_time
             remaining_ms = max(0, LIMIT_TIME_MS - elapsed)
             if remaining_ms == 0:
-                game_over = True     
+                game_over = True   #タイムアップでゲームオーバー  
             all_sprites.update()
             hits = pygame.sprite.groupcollide(bullets, aliens, True, True)
             if hits:
                 score += 10
             player_hits = pygame.sprite.spritecollide(player, alien_bullets, True)
             if player_hits:
-                game_over = True
+                game_over = True   # ← タイムアップ判定もこの中だけで行われる
             for alien in aliens:
                 if alien.rect.bottom >= player.rect.top:
                     game_over = True
@@ -164,7 +164,7 @@ def main():
         if game_started and not game_over and not game_clear:
             time_sec  = remaining_ms // 1000
             time_text = font.render(f"Time: {time_sec}", True, WHITE)
-            screen.blit(time_text, (600, 10))    
+            screen.blit(time_text, (600, 10))    #右上に表示
         if game_over:
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)
             screen.blit(game_over_text, (150, 250))
