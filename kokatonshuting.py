@@ -98,6 +98,9 @@ class AlienBullet(pygame.sprite.Sprite):
 
 # 無敵アイテム（黄色い〇）
 class Item(pygame.sprite.Sprite):
+    """
+    落ちてくるアイテムを表すクラス。
+    """
     def __init__(self, x, y):
         super().__init__()
         radius = 15
@@ -171,7 +174,7 @@ def main():
             item_hits = pygame.sprite.spritecollide(player, items, True)
             if item_hits:
                 player.invincible = True
-                player.invincible_timer = 300  # 約5秒（60FPS）
+                player.invincible_timer = 300  # 約5秒
 
             # 弾がプレイヤーに当たったか（無敵中は無効）
             if not player.invincible:
