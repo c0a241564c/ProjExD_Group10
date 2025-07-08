@@ -1,3 +1,4 @@
+import os
 import pygame
 import sys
 import random
@@ -9,6 +10,17 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 DARK_GREEN = (0, 40, 0)
 
+if "__file__" in globals():                 
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+else:
+    BASE_DIR = os.getcwd()                  
+IMG_DIR = os.path.join(BASE_DIR, "fig")  # ← "ex5" を入れない！
+
+def load_img(filename, alpha=True):
+    """IMG_DIR から (アルファ付きで) 読み込むユーティリティ"""
+    path = os.path.join(IMG_DIR, filename)
+    img  = pygame.image.load(path)
+    return img.convert_alpha() if alpha else img.convert()
 # プレイヤークラス
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -30,7 +42,7 @@ class Player(pygame.sprite.Sprite):
 class Alien(pygame.sprite.Sprite):
     def __init__(self, x, y, all_sprites, alien_bullets):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()  # ← 画像に変更
+        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()  
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.speed = 2
@@ -76,6 +88,37 @@ class AlienBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
+# ライフクラス            
+class Heart:
+    def __init__(self, max_life, filename, pos=(10, 50)):
+        """
+        ライフの基本設定
+        """
+        self.max_life = max_life
+        self.current_life = max_life
+        self.image = load_img(filename)  
+        self.image = pygame.transform.scale(self.image, (30, 30))
+        self.pos = pos
+    def draw(self, screen):
+        """
+        ライフの描画を行う
+        for文を用いてライフの数だけライフの隣に描画していく
+        """
+        x, y = self.pos
+        for i in range(self.current_life):
+            screen.blit(self.image, (x + i * 35, y))
+
+    def decrease(self):
+        """
+        敵の攻撃に当たってしまった場合のライフの処理
+        敵の弾に当たるとライフ-1
+        ライフが0になるとゲームオーバー
+        """
+        if self.current_life > 0:
+            self.current_life -= 1
+
+    def is_empty(self):
+        return self.current_life <= 0
 
 # メインループ
 def main():
@@ -83,6 +126,7 @@ def main():
     screen = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Space Invaders")
     font = pygame.font.SysFont(None, 55)
+    heart = Heart(3, "heart.jpg") # ここでライフクラスを呼ぶ
     all_sprites = pygame.sprite.Group()
     aliens = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
@@ -90,11 +134,7 @@ def main():
     player = Player()
     all_sprites.add(player)
 
-    # スコアの初期化
     score = 0
-
-    # フラグ
-    running = True
     game_over = False
     game_clear = False
     game_started = False
@@ -105,12 +145,11 @@ def main():
             all_sprites.add(alien)
             aliens.add(alien)
 
-    running = True
-
-    while running:
+    while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                running = False
+                pygame.quit()
+                sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE and not game_over:
                     bullet = Bullet(player.rect.centerx, player.rect.top)
@@ -128,7 +167,10 @@ def main():
                 score += 10
             player_hits = pygame.sprite.spritecollide(player, alien_bullets, True)
             if player_hits:
+                heart.decrease()
+            if heart.is_empty():
                 game_over = True
+
             for alien in aliens:
                 if alien.rect.bottom >= player.rect.top:
                     game_over = True
@@ -139,11 +181,11 @@ def main():
         all_sprites.draw(screen)
         score_text = font.render(f"Score: {score}", True, WHITE)
         screen.blit(score_text, (10, 10))
+        heart.draw(screen) # ライフを画面に描画
 
         if game_over:
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)
             screen.blit(game_over_text, (150, 250))
-            # スプライトグループを空にする
             all_sprites.empty()
             aliens.empty()
             bullets.empty()
