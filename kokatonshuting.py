@@ -134,7 +134,7 @@ def get_rank(score):
 
     if score >= 300:
         return "S"
-    elif score >= 2500:
+    elif score >= 250:
         return "A"
     elif score >= 200:
         return "B"
