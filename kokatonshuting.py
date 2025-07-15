@@ -41,7 +41,7 @@ def load_img(filename, alpha=True):
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/4.png").convert_alpha()
+        self.image = pygame.image.load("fig/4.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (400, 550)
         self.speed = 5
@@ -74,9 +74,9 @@ class Player(pygame.sprite.Sprite):
 class Alien(pygame.sprite.Sprite):
     def __init__(self, x, y, all_sprites, alien_bullets):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()  
-        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()
-        self.image = pygame.image.load("ex5/fig/alien1.png").convert_alpha()
+        self.image = pygame.image.load("fig/alien1.png").convert_alpha()  
+        self.image = pygame.image.load("fig/alien1.png").convert_alpha()
+        self.image = pygame.image.load("fig/alien1.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.speed = 2
@@ -98,8 +98,8 @@ class Alien(pygame.sprite.Sprite):
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.image.load("ex5/fig/beam.png").convert_alpha()
-        self.image = pygame.image.load("ex5/fig/beam.png").convert_alpha()
+        self.image = pygame.image.load("fig/beam.png").convert_alpha()
+        self.image = pygame.image.load("fig/beam.png").convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
         self.speed = -10
