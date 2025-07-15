@@ -2,6 +2,8 @@ import os
 import pygame
 import sys
 import random
+import os
+
 
 # 色の定義
 WHITE = (255, 255, 255)
@@ -88,6 +90,58 @@ class AlienBullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if self.rect.top > 600:
             self.kill()
+  
+            
+# スコアに基づいてランクを取得する関数
+def get_rank(score):
+     
+    """
+    # スコアに基づいてランクを取得する関数
+    """
+
+    if score >= 300:
+        return "S"
+    elif score >= 2500:
+        return "A"
+    elif score >= 200:
+        return "B"
+    elif score >= 150:
+        return "C"
+    elif score >= 100:
+        return "D"
+    else:
+        return "E"
+    
+
+
+      # ランキングをファイルに保存
+def save_score(score):  # ランキングをファイルに保存する関数
+    """
+    # ランキングをファイルに保存する関数
+    """
+    scores = []  # スコアを保存するリスト
+    if os.path.exists("ranking.txt"):  # ファイルが存在する場合
+        with open("ranking.txt", "r") as f:  # ファイルを読み込む
+            scores = [int(line.strip()) for line in f.readlines()]  # 各行を整数に変換してリストに格納
+    scores.append(score)  # 新しいスコアを追加
+    scores = sorted(scores, reverse=True)[:5]  # 上位5つのスコアを保持
+    with open("ranking.txt", "w") as f:  # ファイルに書き込む
+        for s in scores:  # 各スコアをファイルに書き込む
+            f.write(f"{s}\n")  # ランキングをファイルに保存する
+
+
+# ランキングを読み込んで上位5位を返す
+def load_ranking():  # ランキングを読み込む関数
+    """
+    # ランキングを読み込む関数
+    """
+    if not os.path.exists("ranking.txt"):  # ファイルが存在しない場合
+        return []  # 空のリストを返す
+    with open("ranking.txt", "r") as f:  # ファイルを読み込む
+        scores = [int(line.strip()) for line in f.readlines()]  # 各行を整数に変換してリストに格納
+    scores.sort(reverse=True)  # スコアを降順にソート
+    return scores[:5]  # 上位5つのスコアを返す
+
 # ライフクラス            
 class Heart:
     def __init__(self, max_life, filename, pos=(10, 50)):
@@ -134,10 +188,13 @@ def main():
     player = Player()
     all_sprites.add(player)
 
+   
+
     score = 0
     game_over = False
     game_clear = False
     game_started = False
+    score_saved = False
 
     for i in range(10):
         for j in range(3):
@@ -183,7 +240,21 @@ def main():
         screen.blit(score_text, (10, 10))
         heart.draw(screen) # ライフを画面に描画
 
+        if (game_over or game_clear) and not score_saved:
+            save_score(score)
+            score_saved = True
+
         if game_over:
+            game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)  # ゲームオーバーテキスト
+            screen.blit(game_over_text, (100, 220))
+            ranking = load_ranking()  # ランキングを読み込む
+            y = 320  # ランキングの表示位置
+            screen.blit(font.render("Ranking", True, WHITE), (310, y))  # ランキングタイトル
+            for i, s in enumerate(ranking):  # 上位5つのスコアを表示
+                y += 40  # ランキングの行間隔
+                screen.blit(font.render(f"{i+1}. {s} pts", True, WHITE), (310, y))  # ランキングのスコアを表示
+
+           
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)
             screen.blit(game_over_text, (150, 250))
             all_sprites.empty()
@@ -192,11 +263,25 @@ def main():
             alien_bullets.empty()
 
         if game_clear:
-            game_clear_text = font.render("GAME CLEAR", True, WHITE)
-            screen.blit(game_clear_text, (300, 250))
+            rank = get_rank(score)  # スコアに基づいてランクを取得
+            game_clear_text = font.render("GAME CLEAR", True, WHITE)  # ゲームクリアテキスト
+            rank_text = font.render(f"Rank: {rank}", True, WHITE)  # ランクテキスト
+            screen.blit(game_clear_text, (300, 250))  # ゲームクリアテキストを画面に描画
+            screen.blit(rank_text, (330, 320))  # ランクテキストを画面に描画
+            ranking = load_ranking()  # ランキングを読み込む
+            y = 360
+            screen.blit(font.render("Ranking", True, WHITE), (310, y))  # ランキングタイトル
+            for i, s in enumerate(ranking):  # 上位5つのスコアを表示
+                y += 40  # ランキングの行間隔
+                screen.blit(font.render(f"{i+1}. {s} pts", True, WHITE), (310, y))  # ランキングのスコアを表示
+
+
 
         pygame.display.flip()
         pygame.time.Clock().tick(60)
+    if game_over and event.key == pygame.K_r:  # ゲームオーバー時にRキーが押されたら再起動
+        pygame.quit()  # Pygameを終了
+        os.execl(sys.executable, sys.executable, *sys.argv)  # スクリプトを再起動
 
     pygame.quit()
     sys.exit()
