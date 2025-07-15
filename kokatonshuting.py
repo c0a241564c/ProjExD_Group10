@@ -1,4 +1,5 @@
 import os
+import os
 import pygame
 import sys
 import random
@@ -23,6 +24,19 @@ def load_img(filename, alpha=True):
     path = os.path.join(IMG_DIR, filename)
     img  = pygame.image.load(path)
     return img.convert_alpha() if alpha else img.convert()
+if "__file__" in globals():                 # ← 対話モード対策
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+else:
+    BASE_DIR = os.getcwd()                  # それでも動かす場合
+
+IMG_DIR = os.path.join(BASE_DIR,"fig")
+
+def load_img(filename, alpha=True):
+    """IMG_DIR から (アルファ付きで) 読み込むユーティリティ"""
+    path = os.path.join(IMG_DIR, filename)
+    img  = pygame.image.load(path)
+    return img.convert_alpha() if alpha else img.convert()
+
 # プレイヤークラス
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -176,6 +190,8 @@ class Heart:
 
 # メインループ
 def main():
+    LIMIT_TIME_MS = 30 * 1000            # 制限時間 30 秒（ミリ秒）
+    start_time    = None                 # カウント開始時刻 
     pygame.init()
     screen = pygame.display.set_mode((800, 600))
     pygame.display.set_caption("Space Invaders")
@@ -214,10 +230,15 @@ def main():
                     bullets.add(bullet)
                 if event.key == pygame.K_s:
                     game_started = True
+                    start_time = pygame.time.get_ticks()
                 if game_over and event.key == pygame.K_r:
                     main()
 
-        if not game_over and game_started:
+        if not game_over and not game_clear and game_started:
+            elapsed      = pygame.time.get_ticks() - start_time
+            remaining_ms = max(0, LIMIT_TIME_MS - elapsed)
+            if remaining_ms == 0:
+                game_over = True   #タイムアップでゲームオーバー  
             all_sprites.update()
             hits = pygame.sprite.groupcollide(bullets, aliens, True, True)
             if hits:
@@ -228,6 +249,7 @@ def main():
             if heart.is_empty():
                 game_over = True
 
+                game_over = True   # ← タイムアップ判定もこの中だけで行われる
             for alien in aliens:
                 if alien.rect.bottom >= player.rect.top:
                     game_over = True
@@ -244,9 +266,13 @@ def main():
             save_score(score)
             score_saved = True
 
+        if game_started and not game_over and not game_clear:
+            time_sec  = remaining_ms // 1000
+            time_text = font.render(f"Time: {time_sec}", True, WHITE)
+            screen.blit(time_text, (600, 10))    #右上に表示
         if game_over:
             game_over_text = font.render("GAME OVER - Press 'R' to Restart", True, WHITE)  # ゲームオーバーテキスト
-            screen.blit(game_over_text, (100, 220))
+            # screen.blit(game_over_text, (100, 220))
             ranking = load_ranking()  # ランキングを読み込む
             y = 320  # ランキングの表示位置
             screen.blit(font.render("Ranking", True, WHITE), (310, y))  # ランキングタイトル
